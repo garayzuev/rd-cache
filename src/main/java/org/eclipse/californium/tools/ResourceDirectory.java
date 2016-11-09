@@ -57,6 +57,7 @@ public class ResourceDirectory extends CoapServer {
 
 		RDResource rdResource = new RDResource();
 
+		add(new RDCacheResource(rdResource));
 		// add resources to the server
 		add(rdResource);
 		add(new RDLookUpTopResource(rdResource));
