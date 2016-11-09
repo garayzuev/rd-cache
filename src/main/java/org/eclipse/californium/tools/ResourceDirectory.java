@@ -24,6 +24,7 @@ import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.EndpointManager;
 import org.eclipse.californium.tools.resources.RDLookUpTopResource;
 import org.eclipse.californium.tools.resources.RDResource;
+import org.eclipse.californium.tools.resources.RDCacheResource;
 import org.eclipse.californium.tools.resources.RDTagTopResource;
 
 /**
