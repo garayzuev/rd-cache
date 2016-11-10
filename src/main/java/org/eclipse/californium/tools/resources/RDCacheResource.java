@@ -7,6 +7,9 @@ import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.WebLink;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
+import org.eclipse.californium.core.coap.MediaTypeRegistry;
+import org.eclipse.californium.core.coap.OptionSet;
+import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.server.resources.Resource;
 
@@ -15,19 +18,31 @@ import org.eclipse.californium.core.server.resources.Resource;
  * @author garayzuev@gmail.com
  */
 public class RDCacheResource extends CoapResource {
-
+  
   private final RDResource rdResource;
-
+  
   public RDCacheResource(RDResource rdResource) {
     this("rd-cache", rdResource);
   }
-
+  
   public RDCacheResource(String resourceIdentifier, RDResource rdResource) {
     super(resourceIdentifier);
     getAttributes().addResourceType("core.rd-cache");
     this.rdResource = rdResource;
   }
-
+  
+  @Override
+  public void handleGET(CoapExchange exchange) {
+    String payload = "";
+    for (Resource res : getChildren()) {
+      payload += "</" + res.getName() + ">,";
+    }
+    Response response = new Response(CoAP.ResponseCode.CONTENT);
+    response.setPayload(payload.substring(0, payload.length() - 1));
+    response.setOptions(new OptionSet().setContentFormat(MediaTypeRegistry.APPLICATION_LINK_FORMAT));
+    exchange.respond(response);
+  }
+  
   @Override
   public void handlePOST(CoapExchange exchange) {
 
@@ -38,23 +53,23 @@ public class RDCacheResource extends CoapResource {
     int lifeTime = 86400;
     RDNodeResource resource = null;
     CoAP.ResponseCode responseCode;
-
+    
     List<String> query = exchange.getRequestOptions().getUriQuery();
     for (String q : query) {
-
+      
       KeyValuePair kvp = KeyValuePair.parse(q);
-
+      
       if (LinkFormat.END_POINT.equals(kvp.getName()) && !kvp.isFlag()) {
         endpointName = kvp.getValue();
       }
-
+      
       if (LinkFormat.DOMAIN.equals(kvp.getName()) && !kvp.isFlag()) {
         domain = kvp.getValue();
       }
       if (LinkFormat.END_POINT_TYPE.equals(kvp.getName()) && !kvp.isFlag()) {
         endpointType = kvp.getValue();
       }
-
+      
       if (LinkFormat.LIFE_TIME.equals(kvp.getName()) && !kvp.isFlag()) {
         lifeTime = kvp.getIntValue();
         if (lifeTime < 60) {
@@ -69,17 +84,17 @@ public class RDCacheResource extends CoapResource {
     }
 
     // find already registered EP
-    for (Resource node : getChildren()) {
+    for (Resource node : rdResource.getChildren()) {
       if (((RDNodeResource) node).getEndpointName().equals(endpointName) && ((RDNodeResource) node).getDomain().equals(domain)) {
         resource = (RDNodeResource) node;
       }
     }
-
+    
     if (resource == null) {
-
+      
       resource = new RDNodeResource(endpointName, domain);
       rdResource.add(resource);
-
+      
       responseCode = CoAP.ResponseCode.CREATED;
     } else {
       responseCode = CoAP.ResponseCode.CHANGED;
@@ -103,7 +118,7 @@ public class RDCacheResource extends CoapResource {
     updateEndpointResources(node, exchange.getRequestText(), endpointName, lifeTime);
     add(node);
   }
-
+  
   public CoapResource addNodeResource(String path, CoapResource root, int lt) {
     Scanner scanner = new Scanner(path);
     scanner.useDelimiter("/");
@@ -132,11 +147,11 @@ public class RDCacheResource extends CoapResource {
     scanner.close();
     return subResource;
   }
-
+  
   private boolean updateEndpointResources(CoapResource root, String linkFormat, String endpointName, int lt) {
-
+    
     Set<WebLink> links = LinkFormat.parse(linkFormat);
-
+    
     for (WebLink l : links) {
       CoapResource resource;
       if (!l.getURI().equals("/")) {
@@ -156,11 +171,11 @@ public class RDCacheResource extends CoapResource {
           resource.getAttributes().addAttribute(attribute, value);
         }
       }
-
+      
       resource.getAttributes().setAttribute(LinkFormat.END_POINT, endpointName);
     }
-
+    
     return true;
   }
-
+  
 }
