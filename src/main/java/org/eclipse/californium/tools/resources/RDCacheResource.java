@@ -8,6 +8,7 @@ import org.eclipse.californium.core.WebLink;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.LinkFormat;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
+import org.eclipse.californium.core.coap.Option;
 import org.eclipse.californium.core.coap.OptionSet;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -20,6 +21,7 @@ import org.eclipse.californium.core.server.resources.Resource;
 public class RDCacheResource extends CoapResource {
 
   private final RDResource rdResource;
+  private final String TEMPLATE = "<${URI}>;rel=\"http://w3id.org/semiot/coap/rd-cache\"";
 
   public RDCacheResource(RDResource rdResource) {
     this("rd-cache", rdResource);
@@ -109,14 +111,19 @@ public class RDCacheResource extends CoapResource {
       exchange.respond(CoAP.ResponseCode.BAD_REQUEST);
       return;
     }
-    // inform client about the location of the new resource
-    exchange.setLocationPath(resource.getURI());
-    exchange.respond(responseCode);
 
     //Create a RDCacheNode
     CoapResource node = new RDCacheSubResource(endpointName, lifeTime);
     updateEndpointResources(node, exchange.getRequestText(), endpointName, lifeTime);
     add(node);
+
+    // inform client about the location of the new resources
+    Response resp = new Response(responseCode);
+    OptionSet os = new OptionSet();
+    os.addLocationPath(resource.getURI().substring(1));
+    os.addOption(new Option(41, TEMPLATE.replace("${URI}", node.getURI())));
+    resp.setOptions(os);
+    exchange.respond(resp);
   }
 
   public CoapResource addNodeResource(String path, CoapResource root, int lt) {

@@ -40,7 +40,13 @@ public class RDCacheSubResource extends CoapResource {
   public void handleGET(CoapExchange exchange) {
     Response resp = new Response(CoAP.ResponseCode.CONTENT);
     resp.setPayload(payload);
-    resp.setOptions(new OptionSet().setContentFormat(Integer.valueOf(getAttributes().getContentTypes().get(0))));    
+    int ct;
+    if (getAttributes().getContentTypes() != null && !getAttributes().getContentTypes().isEmpty()) {
+      ct = Integer.valueOf(getAttributes().getContentTypes().get(0));
+    } else {
+      ct = MediaTypeRegistry.TEXT_PLAIN;
+    }
+    resp.setOptions(new OptionSet().setContentFormat(ct));
     exchange.respond(resp);
   }
 
